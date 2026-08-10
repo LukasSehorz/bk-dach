@@ -1,0 +1,5 @@
+# Die Demo-Website liegt im Unterordner demo/ — Netlify muss von dort
+# ausliefern, sonst findet es im Repo-Root keine index.html (404).
+[build]
+  publish = "demo"
+  command = ""
