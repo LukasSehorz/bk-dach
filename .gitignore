@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Generierte QA- und Recherche-Artefakte (Screenshots, Rohdaten)
+qa/
+recherche/
+referenz-klindworth/
+analyse/screenshots/
+analyse/raw/
+
+# Original-Bildmaterial (unkomprimiert, nicht von der Website referenziert)
+demo/assets/img-orig/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

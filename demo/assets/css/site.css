@@ -1,0 +1,759 @@
+/* =========================================================
+   BK-Dach GmbH — Demo
+   Aufbau, Farbrhythmus und Bewegung nach klindworthroofing.com,
+   übersetzt in ein dunkles Layout mit dem Firmenblau #52A5DB.
+
+   Die Referenz wechselt zwischen zwei Sektionsfarben (#24262b und #ede9e2).
+   Dieser Entwurf übernimmt denselben Wechsel, nur beide Töne dunkel:
+   --ink für die dunklen Bänder, --graphite für die hellen.
+   ========================================================= */
+
+/* ---------- Schriften ---------- */
+@font-face{font-family:Satoshi;src:url("../fonts/Satoshi-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Satoshi;src:url("../fonts/Satoshi-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:Satoshi;src:url("../fonts/Satoshi-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:Zodiak;src:url("../fonts/Zodiak-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Zodiak;src:url("../fonts/Zodiak-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+
+/* ---------- Token ---------- */
+:root{
+  --ink:#121519;
+  /* Der helle Sektionston muss deutlich abgesetzt sein — in der Referenz trägt
+     der Wechsel zwischen den beiden Tönen die ganze Gliederung. */
+  --graphite:#3A424E;
+  --fg:#E9EDF1;
+  --fg-2:#AEB7C2;
+  --fg-3:#8E97A3;
+  --accent:#52A5DB;
+  --accent-2:#A3C7E9;
+  --accent-3:#C4DAF1;
+
+  /* Linien als Deckfarbe, damit sie auf beiden Sektionstönen sitzen */
+  --line:rgba(233,237,241,.16);
+  --line-soft:rgba(233,237,241,.08);
+
+  --pad:clamp(20px,8.3vw,120px);
+  --sec:clamp(76px,8.4vw,120px);
+  --maxw:1560px;
+
+  --d-xxl:min(30vw,362px);
+  --d-xl:clamp(36px,4.8vw,62px);
+  --d-l:clamp(30px,4.2vw,60px);
+  --d-m:clamp(27px,3.6vw,54px);
+  --lead:clamp(19px,1.5vw,26px);
+
+  --ease:cubic-bezier(.16,1,.3,1);
+  --ease-img:cubic-bezier(.165,.84,.44,1);
+  --ease-words:cubic-bezier(.4,0,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0;
+  background:var(--ink);
+  color:var(--fg);
+  font-family:Satoshi,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  font-size:18px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+
+:where(a,button,input,summary):focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:4px;
+  border-radius:1px;
+}
+::selection{background:var(--accent);color:var(--ink)}
+
+/* ---------- Sektionsfarben — der Wechsel aus der Referenz ---------- */
+.bg-ink{background:var(--ink)}
+.bg-graphite{
+  background:var(--graphite);
+  /* Haarlinie an beiden Kanten, damit die Sektionsgrenze auch dann sitzt,
+     wenn der Helligkeitsunterschied allein nicht trägt */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(255,255,255,.10);
+  /* auf dem helleren Grund braucht der Sekundärton mehr Helligkeit */
+  --fg-3:#A6AEB9;
+  --line:rgba(255,255,255,.20);
+  --line-soft:rgba(255,255,255,.11);
+}
+.hide-overflow{overflow:hidden}
+
+/* =========================================================
+   Bewegung — 1:1 aus der Referenz übernommene Grammatik
+   ========================================================= */
+
+/* Auftritt von unten */
+[data-animate="fade-up"]{transition:opacity ease .6s,transform ease .6s}
+.js [data-animate="fade-up"]:not([data-animated]){opacity:0;transform:translateY(40px)}
+[data-animate="fade-up"][data-animated]{opacity:1;transform:translateY(0)}
+
+/* Bildvorhang: eine Fläche in der Sektionsfarbe fährt nach oben weg */
+[data-animate="img"]{position:relative}
+[data-animate="img"]::after{
+  content:"";
+  width:calc(100% + 2px);
+  height:calc(100% + 2px);
+  position:absolute;
+  bottom:-1px;
+  left:-1px;
+  transform-origin:50% 0;
+  transform:scaleY(0);
+  opacity:0;
+  pointer-events:none;
+  background-color:var(--ink);
+  z-index:2;
+}
+.bg-graphite [data-animate="img"]::after{background-color:var(--graphite)}
+.js [data-animate="img"]:not([data-animated])::after{
+  transform:scaleY(1);
+  opacity:1;
+  transition:transform ease 0s,opacity ease .6s;
+}
+[data-animate="img"][data-animated]::after{
+  transform:scaleY(0);
+  opacity:0;
+  transition:transform var(--ease-img) .6s,opacity ease 0s .6s;
+}
+
+/* Überschriften steigen zeilenweise auf */
+/* bis das Skript die Zeilen gebildet hat, bleibt die Überschrift verborgen */
+.js [data-animate="words"]:not([data-split="done"]){opacity:0}
+/* Zeilenhöhe des Elements übernehmen, sonst staucht der Splitter den Fließtext */
+[data-animate="words"] .line{overflow:hidden;line-height:inherit;padding-top:.06em;margin-top:-.06em}
+[data-animate="words"] .word{display:inline-block}
+.js [data-animate="words"]:not([data-animated]) .word{
+  transform:translateY(200%);
+  opacity:0;
+  transition:transform var(--ease-words) 0s .6s,opacity var(--ease-words) .6s;
+}
+[data-animate="words"][data-animated] .word{transform:translateY(0);opacity:1}
+[data-animate="words"][data-animated] .line:nth-child(1) .word{transition:transform var(--ease-words) .6s 0s,opacity var(--ease-words) .6s 0s}
+[data-animate="words"][data-animated] .line:nth-child(2) .word{transition:transform var(--ease-words) .6s .1s,opacity var(--ease-words) .6s .1s}
+[data-animate="words"][data-animated] .line:nth-child(3) .word{transition:transform var(--ease-words) .6s .2s,opacity var(--ease-words) .6s .2s}
+[data-animate="words"][data-animated] .line:nth-child(4) .word{transition:transform var(--ease-words) .6s .3s,opacity var(--ease-words) .6s .3s}
+[data-animate="words"][data-animated] .line:nth-child(5) .word{transition:transform var(--ease-words) .6s .4s,opacity var(--ease-words) .6s .4s}
+[data-animate="words"][data-animated] .line:nth-child(6) .word{transition:transform var(--ease-words) .6s .5s,opacity var(--ease-words) .6s .5s}
+
+/* Parallax — der Anteil kommt aus dem Skript */
+[data-parallax]{--parallax-percent:0}
+
+/* =========================================================
+   Kopfzeile
+   ========================================================= */
+.site-head{
+  position:absolute;
+  inset:0 0 auto 0;
+  z-index:60;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:16px;
+  /* Der Kopf sitzt im 40-px-Vollrand, nicht im Satzspiegel — wie in der Referenz */
+  padding:41px clamp(20px,3vw,40px);
+  pointer-events:none;
+}
+.site-head > *{pointer-events:auto}
+/* Logo und Telefonnummer liegen über dem Hero-Foto und brauchen einen leichten Schleier */
+.site-head::before{
+  content:"";position:absolute;inset:0 0 auto 0;height:150px;z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,12,15,.5) 0%,rgba(10,12,15,0) 100%);
+}
+
+.brand{grid-column:1;display:flex;align-items:center;gap:12px}
+.brand svg{width:34px;height:34px;flex:none}
+.brand-word{font-weight:700;font-size:19px;letter-spacing:-.01em;white-space:nowrap}
+.brand-word .b{color:var(--accent)}
+.brand-word .d{color:var(--fg)}
+
+.menu-btn{
+  position:fixed;
+  top:41px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:70;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:138px;
+  height:54px;
+  border:none;
+  border-radius:999px;
+  background:var(--fg);
+  color:var(--ink);
+  cursor:pointer;
+  box-shadow:0 10px 30px -14px rgba(0,0,0,.9);
+  transition:background .35s var(--ease),transform .35s var(--ease);
+}
+.menu-btn:hover{background:#fff;transform:translate(-50%,-1px)}
+.menu-btn i{display:block;width:22px;height:1.6px;background:currentColor;transition:transform .4s var(--ease)}
+.menu-btn i + i{margin-top:5px}
+.menu-btn[aria-expanded="true"] i:first-child{transform:translateY(3.3px) rotate(45deg)}
+.menu-btn[aria-expanded="true"] i:last-child{transform:translateY(-3.3px) rotate(-45deg)}
+
+.head-tel{
+  grid-column:3;
+  justify-self:end;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  font-weight:700;
+  font-size:16px;
+  white-space:nowrap;
+}
+.head-tel span{transition:color .3s var(--ease)}
+.head-tel:hover span{color:var(--accent)}
+.head-tel svg{width:15px;height:15px;color:var(--accent)}
+
+/* Overlay-Navigation */
+.nav-overlay{
+  position:fixed;
+  inset:0;
+  z-index:55;
+  background:var(--ink);
+  display:grid;
+  grid-template-rows:1fr auto;
+  padding:clamp(110px,14vh,180px) var(--pad) clamp(36px,6vh,72px);
+  clip-path:inset(0 0 100% 0);
+  transition:clip-path .72s var(--ease);
+  visibility:hidden;
+}
+.nav-overlay.open{clip-path:inset(0 0 0 0);visibility:visible}
+
+.nav-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(2px,1vh,10px)}
+.nav-list a{
+  font-family:Zodiak,Georgia,serif;
+  font-weight:700;
+  text-transform:uppercase;
+  font-size:clamp(34px,7vw,86px);
+  line-height:1.08;
+  letter-spacing:-.025em;
+  display:inline-block;
+  transition:color .3s var(--ease),transform .5s var(--ease),opacity .5s var(--ease);
+  transform:translateY(28px);
+  opacity:0;
+}
+.nav-overlay.open .nav-list a{transform:translateY(0);opacity:1;transition-delay:calc(var(--i) * 60ms + 140ms)}
+.nav-list a:hover,.nav-list a[aria-current="page"]{color:var(--accent)}
+
+.nav-foot{
+  display:flex;flex-wrap:wrap;gap:10px 40px;
+  border-top:1px solid var(--line);
+  padding-top:22px;color:var(--fg-2);font-size:15px;
+}
+.nav-foot a:hover{color:var(--accent)}
+
+/* =========================================================
+   Typo-Rollen
+   ========================================================= */
+.d-xxl,.d-xl,.d-l,.d-m{
+  font-family:Zodiak,Georgia,"Times New Roman",serif;
+  margin:0;display:block;text-wrap:balance;
+}
+.d-xxl{font-size:var(--d-xxl);font-weight:700;line-height:100%;letter-spacing:-.03em;text-transform:uppercase}
+/* Deutsche Sektionswörter sind länger als WORK oder KUDOS und brauchen eine eigene Stufe */
+/* Jedes Sektionswort füllt den Satzspiegel von Rand zu Rand — die Größe wird
+   je Wort über --huge gesetzt, weil deutsche Wörter unterschiedlich lang sind. */
+.d-xxl.d-xxl--word{font-size:var(--huge,min(11.7vw,186px))}
+.d-xl{font-size:var(--d-xl);font-weight:700;line-height:1.02;letter-spacing:-.025em;text-transform:uppercase}
+.d-l{font-size:var(--d-l);font-weight:700;line-height:1.04;letter-spacing:-.025em;text-transform:uppercase}
+.d-m{font-size:var(--d-m);font-weight:400;line-height:1.14;letter-spacing:-.02em}
+
+.lead{font-size:var(--lead);line-height:1.46;max-width:26ch}
+p{margin:0 0 1.1em;max-width:66ch}
+p:last-child{margin-bottom:0}
+
+.label{
+  font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+  font-weight:500;color:var(--fg-3);margin:0;max-width:none;
+}
+.label--accent{color:var(--accent)}
+.muted{color:var(--fg-2)}
+.accent{color:var(--accent)}
+
+/* =========================================================
+   Grundlayout
+   ========================================================= */
+.wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--pad)}
+.section{padding-block:var(--sec)}
+.section--tight{padding-block:clamp(48px,6vw,88px)}
+.section--nb{padding-bottom:0}
+.section--nt{padding-top:0}
+
+/* =========================================================
+   Hero
+   ========================================================= */
+.hero{
+  position:relative;
+  min-height:100svh;
+  display:flex;
+  align-items:center;
+  padding-block:clamp(140px,18vh,210px) clamp(70px,10vh,120px);
+  overflow:hidden;
+}
+.hero-grid{
+  width:100%;max-width:var(--maxw);margin-inline:auto;
+  padding-inline:var(--pad);position:relative;z-index:2;
+}
+.hero-copy{max-width:min(575px,42vw)}
+/* Der Eyebrow ist in der Referenz eine lesbare Zeile, kein Mikro-Label */
+.hero .label{
+  margin-bottom:clamp(18px,2.4vw,30px);
+  font-size:clamp(15px,1.3vw,19px);
+  letter-spacing:.03em;
+}
+.hero h1{margin-bottom:clamp(20px,2.6vw,34px)}
+.hero-copy p{color:var(--fg-2);max-width:44ch;font-size:19px;margin-bottom:clamp(26px,3vw,40px)}
+
+/* Foto rechts, darüber die Logo-Diagonalen in der Sektionsfarbe */
+.hero-art{position:absolute;inset:0 0 0 auto;width:min(53%,900px);z-index:1;pointer-events:none}
+.hero-media{position:absolute;inset:0;margin:0;overflow:hidden}
+/* Bild etwas höher als der Rahmen, unten bündig, und beim Scrollen nach unten
+   nachlaufend — dieselbe Rechnung wie in der Referenz. */
+.hero-media img{
+  width:100%;height:114%;object-fit:cover;
+  position:absolute;left:0;bottom:0;
+  transform:translateY(calc(12% * var(--parallax-percent)));
+}
+/* Drei Bänder in der Sektionsfarbe, parallel zur Logo-Diagonale und nach
+   rechts unten schmaler werdend — das Foto erscheint in den Zwischenräumen. */
+.hero-graphic{
+  position:absolute;inset:-1px;z-index:2;display:block;pointer-events:none;
+  background:
+    /* helle Kante an jedem Bandrand, damit die Form gegen das Foto steht */
+    linear-gradient(135deg,
+      transparent 0 4.6%, rgba(233,237,241,.32) 4.6% 5%,
+      transparent 5% 51.6%, rgba(233,237,241,.32) 51.6% 52%,
+      transparent 52% 59.6%, rgba(233,237,241,.32) 59.6% 60%,
+      transparent 60% 78.6%, rgba(233,237,241,.32) 78.6% 79%,
+      transparent 79% 85.6%, rgba(233,237,241,.32) 85.6% 86%,
+      transparent 86% 95.6%, rgba(233,237,241,.32) 95.6% 96%,
+      transparent 96% 100%),
+    linear-gradient(135deg,
+      var(--graphite) 0 5%,
+      transparent 5% 52%,
+      var(--graphite) 52% 60%,
+      transparent 60% 79%,
+      var(--graphite) 79% 86%,
+      transparent 86% 96%,
+      var(--graphite) 96% 100%);
+}
+
+.hero-scroll{
+  position:absolute;left:var(--pad);bottom:clamp(24px,4vh,44px);z-index:2;
+  display:inline-flex;align-items:center;gap:12px;
+  color:var(--fg-3);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;
+}
+.hero-scroll svg{width:13px;height:22px;color:var(--accent)}
+
+/* =========================================================
+   Schaltfläche — es gibt genau eine Sprache
+   ========================================================= */
+.btn{
+  display:inline-flex;align-items:center;gap:12px;
+  padding:15px 30px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  font-weight:500;font-size:16px;color:var(--fg);
+  background:transparent;cursor:pointer;
+  transition:border-color .35s var(--ease),color .35s var(--ease);
+}
+.btn svg{width:15px;height:15px;transition:transform .4s var(--ease)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:hover svg{transform:translateX(5px)}
+
+/* =========================================================
+   Was wir machen
+   ========================================================= */
+/* Asymmetrische Einrückung wie in der Referenz: großes leeres Feld links,
+   Text rechts bis an den Satzspiegel. */
+.intro{
+  display:grid;grid-template-columns:auto minmax(0,1fr);
+  gap:0 clamp(40px,11vw,174px);
+  align-items:start;
+  padding-left:min(18%,240px);
+}
+/* Leserichtung von unten nach oben wie in der Referenz — deshalb hier kein
+   data-animate, dessen transform würde die Drehung überschreiben. */
+.v-label{
+  writing-mode:vertical-rl;transform:rotate(180deg);
+  font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);font-weight:500;margin:0;white-space:nowrap;
+}
+.intro-text{
+  font-size:clamp(21px,2.1vw,34px);line-height:1.42;letter-spacing:-.01em;
+  max-width:none;margin:0;color:var(--fg);
+}
+
+/* Deutliche Asymmetrie 1,78:1 mit großem Luftraum, wie in der Referenz */
+.pair{
+  display:grid;grid-template-columns:1.78fr 1fr;
+  gap:clamp(24px,10vw,143px);align-items:start;
+  margin-top:clamp(52px,7vw,110px);
+}
+.tile{display:block}
+.tile figure{margin:0;overflow:hidden;background:rgba(233,237,241,.05);aspect-ratio:3/2}
+.tile img{width:100%;height:100%;object-fit:cover;transition:transform 1.1s var(--ease)}
+.tile:hover img{transform:scale(1.035)}
+/* das erste Bildpaar wandert leicht gegeneinander, wie in der Referenz */
+.pair .tile:first-child figure{transform:translateY(calc(-46px * var(--parallax-percent)))}
+.tile-head{display:flex;align-items:baseline;gap:9px;margin-top:20px}
+.tile-head h3{font-family:Satoshi,sans-serif;font-size:clamp(18px,1.5vw,22px);font-weight:500;margin:0;letter-spacing:-.01em}
+.tile:hover .tile-head h3{color:var(--accent)}
+.tile-head svg{width:14px;height:14px;color:var(--accent);transition:transform .4s var(--ease)}
+.tile:hover .tile-head svg{transform:translateX(5px)}
+.tile p{color:var(--fg-2);margin:4px 0 0;font-size:16.5px}
+
+/* =========================================================
+   Sektionswort mit Parallaxbewegung
+   ========================================================= */
+.word-row{
+  display:flex;justify-content:center;
+  padding:clamp(52px,6vw,100px) var(--pad) clamp(72px,9vw,150px);
+  overflow:hidden;
+}
+.word-row .d-xxl{color:var(--fg);white-space:nowrap}
+/* das Wort läuft dem Scrollen hinterher, wie in der Referenz */
+.scrolling-title{transform:translateY(calc(45% * var(--parallax-percent)))}
+
+/* =========================================================
+   Projektbänder — volle Viewporthöhe, leicht überlappend
+   ========================================================= */
+/* Die Karten pinnen am oberen Rand, die nächste schiebt sich darüber —
+   die Signaturbewegung der Referenz. Kein Vorfahre darf overflow:hidden haben. */
+.bands{position:relative}
+.band{
+  position:relative;display:block;
+  height:100lvh;
+  overflow:hidden;
+  padding:clamp(18px,2.6vw,40px);
+}
+/* Ohne unteren Innenabstand läuft das Bild bis an die Viewportkante — sonst
+   blitzt zwischen zwei Karten ein dunkler Spalt auf. */
+.bands > .band{position:sticky;top:0;padding-bottom:0}
+.band__inner{display:block;position:relative;width:100%;height:100%;overflow:hidden}
+.band img{
+  width:100%;height:114%;object-fit:cover;
+  position:absolute;left:0;bottom:0;
+  transform:translateY(calc(12% * var(--parallax-percent)));
+}
+.band__inner::before{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(10,12,15,.8) 0%,rgba(10,12,15,.38) 26%,rgba(10,12,15,0) 58%),
+    linear-gradient(100deg,rgba(10,12,15,.5) 0%,rgba(10,12,15,.18) 46%,rgba(10,12,15,0) 82%),
+    /* flache Abdunklung wie in der Referenz, damit das Bild ins dunkle Layout passt */
+    rgba(0,0,0,.16);
+}
+/* Projekttitel steht oben in der Karte, wie in der Referenz */
+.band-cap{
+  position:absolute;inset:0 auto auto 0;z-index:2;
+  padding:clamp(28px,4vw,80px);
+  width:100%;
+}
+.band-cap .d-l{margin-bottom:8px}
+.band-cap .meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--fg-2);font-size:14.5px}
+.band-cap .meta b{color:var(--accent);font-weight:500}
+
+/* =========================================================
+   Leistungs-Karussell
+   ========================================================= */
+.rail-head{text-align:center;margin-bottom:clamp(34px,4.4vw,64px)}
+.rail-head .d-m{max-width:min(100%,620px);margin-inline:auto}
+.rail-head .label{margin-bottom:20px}
+
+/* Angeheftete Leistungs-Sektion: das vertikale Scrollen schiebt das Karussell
+   waagerecht durch. Die Höhe des Rahmens setzt das Skript aus der Scrollweite
+   der Reihe; kein Vorfahre darf overflow:hidden haben, sonst greift sticky nicht. */
+.rail-pin{position:relative}
+.rail-sticky{
+  position:sticky;top:0;
+  min-height:100lvh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding-block:clamp(56px,8vh,110px);
+}
+/* Solange die Sektion angeheftet ist, steuert das Skript die Position —
+   Einrasten und Ziehen würden dagegenarbeiten. */
+.rail-pin.is-pinning .rail{scroll-snap-type:none}
+.js .rail-pin.is-pinning .rail{cursor:default}
+
+.rail-wrap{position:relative}
+.rail-nav{display:flex;gap:12px;flex:none}
+/* Große, ausschließlich konturierte Kreise wie in der Referenz */
+.rail-nav button{
+  width:72px;height:72px;
+  border:1px solid var(--line);border-radius:999px;
+  background:transparent;color:var(--fg);
+  display:grid;place-items:center;cursor:pointer;
+  transition:border-color .3s var(--ease),color .3s var(--ease),background .3s var(--ease);
+}
+.rail-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.rail-nav svg{width:20px;height:20px}
+.rail-nav--float{
+  position:absolute;right:0;
+  /* halbe Bildhöhe bei Seitenverhältnis 4:3 */
+  top:calc(clamp(260px,33vw,475px) * .375);
+  transform:translateY(-50%);
+  flex-direction:column;z-index:3;
+}
+/* Auch hier nur Kontur, wie in der Referenz — die Pfeile liegen im
+   Zwischenraum zwischen den Karten, nicht mehr auf einem Foto. */
+.rail-nav--float button{
+  background:transparent;
+  border-color:var(--line);
+  backdrop-filter:blur(6px);
+}
+.rail-nav--float button:hover:not(:disabled){background:rgba(233,237,241,.08)}
+/* nur das Pfeilzeichen faden, der Ring bleibt stehen */
+.rail-nav--float button:disabled{
+  opacity:1;background:transparent;
+  border-color:rgba(255,255,255,.12);color:rgba(233,237,241,.3);
+}
+.rail-nav button:disabled{cursor:default}
+
+.rail{
+  display:grid;grid-auto-flow:column;
+  grid-auto-columns:clamp(260px,33vw,475px);
+  gap:clamp(24px,9vw,130px);
+  overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px;
+  /* bis an den Bildschirmrand laufen, damit die nächste Karte angeschnitten sichtbar ist */
+  margin-right:calc(var(--pad) * -1);
+  padding-right:var(--pad);
+}
+.rail::-webkit-scrollbar{display:none}
+.js .rail{cursor:grab}
+.rail > *{scroll-snap-align:start}
+.rail figure{margin:0;overflow:hidden;aspect-ratio:4/3;background:rgba(233,237,241,.05)}
+.rail img{width:100%;height:100%;object-fit:cover;transition:transform 1.1s var(--ease)}
+.rail article:hover img{transform:scale(1.04)}
+.rail h3{font-family:Satoshi,sans-serif;font-size:19px;font-weight:500;margin:20px 0 0;display:flex;align-items:center;gap:9px}
+.rail article:hover h3{color:var(--accent)}
+.rail h3 svg{width:14px;height:14px;color:var(--accent);transition:transform .4s var(--ease)}
+.rail article:hover h3 svg{transform:translateX(5px)}
+.rail p{color:var(--fg-2);font-size:16px;margin:8px 0 0;max-width:38ch}
+
+.rail-bar{height:1px;background:var(--line);margin-top:clamp(28px,3.4vw,50px);position:relative;overflow:hidden}
+.rail-bar i{
+  position:absolute;inset:0 auto 0 0;width:100%;
+  background:var(--accent);transform-origin:left center;transform:scaleX(.3);
+  transition:transform .35s var(--ease);
+}
+
+/* =========================================================
+   Vollflächiges Bild mit Verlauf in die nächste Sektion
+   ========================================================= */
+.talk-cta{display:flex;justify-content:center;padding:clamp(56px,6vw,96px) var(--pad)}
+.full-screen-img{position:relative;overflow:hidden;height:100lvh}
+.full-screen-img img{
+  width:100%;height:114%;object-fit:cover;
+  position:absolute;left:0;bottom:0;
+  transform:translateY(calc(12% * var(--parallax-percent)));
+}
+.full-screen-img::after{
+  content:"";position:absolute;bottom:0;left:0;width:100%;height:50%;z-index:1;
+  background:linear-gradient(to bottom,transparent 0,var(--ink) 100%);
+}
+
+/* =========================================================
+   Stimmen
+   ========================================================= */
+/* Schmale Zitatspalte, dafür ein großes Hochformat — Maße aus der Referenz.
+   Bild und Pfeile schließen rechts bündig mit dem Satzspiegel ab. */
+.quotes{
+  display:grid;
+  grid-template-columns:minmax(0,430px) minmax(0,1fr) auto;
+  column-gap:0;row-gap:28px;align-items:center;
+}
+.quote-body blockquote{
+  margin:0;font-family:Zodiak,Georgia,serif;
+  font-size:clamp(23px,2.6vw,40px);line-height:1.26;letter-spacing:-.02em;max-width:none;
+}
+.quote-body cite{display:block;margin-top:26px;font-style:normal;color:var(--fg-2);font-size:15px}
+.quote-fig{
+  margin:0 30px 0 auto;width:482px;max-width:100%;
+  aspect-ratio:483/565;overflow:hidden;background:rgba(233,237,241,.05);
+}
+.quote-fig img{width:100%;height:100%;object-fit:cover}
+.quote-item{display:none}
+.quote-item.on{display:contents}
+.quotes .rail-nav{flex-direction:column}
+
+/* =========================================================
+   Zahlen
+   ========================================================= */
+.facts{display:flex;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.facts div{flex:1 1 190px;padding:clamp(24px,3vw,42px) clamp(16px,2vw,30px) clamp(24px,3vw,42px) 0}
+.facts b{
+  display:block;font-family:Zodiak,Georgia,serif;
+  font-size:clamp(30px,3.4vw,48px);font-weight:700;line-height:1;letter-spacing:-.02em;
+  color:var(--accent);font-variant-numeric:tabular-nums;
+}
+.facts span{display:block;margin-top:12px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3)}
+
+/* =========================================================
+   Abschluss
+   ========================================================= */
+.close-cta{text-align:center;padding-block:clamp(72px,9vw,150px)}
+.close-cta .label{margin-bottom:clamp(20px,2.4vw,32px)}
+.tel-big{
+  font-family:Zodiak,Georgia,serif;font-weight:700;
+  font-size:clamp(42px,8.4vw,132px);line-height:1;letter-spacing:-.035em;
+  display:inline-block;color:var(--fg);font-variant-numeric:tabular-nums;
+  transition:color .35s var(--ease);
+}
+.tel-big:hover{color:var(--accent)}
+.close-cta .btn{margin-top:clamp(28px,3.4vw,48px)}
+
+/* =========================================================
+   Fußzeile
+   ========================================================= */
+.site-foot{padding-block:clamp(56px,7vw,104px) 34px}
+.foot-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,4vw,64px)}
+.foot-grid h4{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);font-weight:500;margin:0 0 18px}
+.foot-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.foot-list a,.foot-list span{color:var(--fg-2);font-size:16.5px;transition:color .3s var(--ease)}
+.foot-list a:hover{color:var(--accent)}
+.foot-tel{font-family:Zodiak,Georgia,serif;font-weight:700;font-size:clamp(26px,2.6vw,38px);letter-spacing:-.02em;color:var(--fg);display:inline-block;line-height:1.1}
+.foot-tel:hover{color:var(--accent)}
+.foot-mail{display:inline-block;margin-top:10px;color:var(--fg-2);font-size:17px}
+.foot-mail:hover{color:var(--accent)}
+
+.foot-bottom{
+  margin-top:clamp(46px,6vw,88px);padding-top:26px;border-top:1px solid var(--line-soft);
+  display:flex;flex-wrap:wrap;gap:14px 40px;justify-content:space-between;align-items:flex-end;
+  color:var(--fg-3);font-size:13.5px;
+}
+.foot-bottom p{max-width:60ch;margin:0}
+
+.demo-note{
+  border:1px dashed var(--line);padding:14px 18px;
+  color:var(--fg-3);font-size:13px;line-height:1.55;max-width:66ch;margin-top:26px;
+}
+.demo-note b{color:var(--fg-2);font-weight:500}
+
+/* =========================================================
+   Unterseiten
+   ========================================================= */
+.page-head{padding-block:clamp(150px,18vh,230px) clamp(40px,5vw,80px)}
+.page-head .label{margin-bottom:22px}
+.page-head .d-xl{margin-bottom:26px}
+.page-head p{color:var(--fg-2);font-size:var(--lead);line-height:1.46;max-width:52ch}
+
+.row{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(26px,4vw,80px);align-items:center;
+  padding-block:clamp(38px,5vw,74px);
+  border-top:1px solid var(--line-soft);
+}
+.row:first-of-type{border-top:none}
+.row figure{margin:0;overflow:hidden;aspect-ratio:3/2;background:rgba(233,237,241,.05)}
+.row img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.row:hover img{transform:scale(1.03)}
+.row--flip figure{order:2}
+.row h2{font-family:Zodiak,Georgia,serif;font-size:clamp(26px,3vw,42px);font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0 0 16px}
+.row .idx{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:14px;font-weight:500}
+.row p{color:var(--fg-2);max-width:46ch}
+
+.proj{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:0;border-bottom:1px solid var(--line-soft)}
+.proj > div{padding:26px 26px 26px 0;border-right:1px solid var(--line-soft)}
+.proj > div:last-child{border-right:none}
+.proj dt{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);margin-bottom:10px}
+.proj dd{margin:0;color:var(--fg);font-size:16.5px;line-height:1.5}
+
+.kontakt-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,4vw,80px);align-items:stretch}
+.kontakt-media{margin:0;overflow:hidden;background:rgba(233,237,241,.05);min-height:460px}
+.kontakt-media img{width:100%;height:100%;object-fit:cover}
+.kvlist{margin:0}
+.kv{border-top:1px solid var(--line-soft);padding:20px 0;display:grid;grid-template-columns:158px minmax(0,1fr);gap:18px}
+.kvlist > .kv:first-child{border-top:none;padding-top:0}
+.kv dt{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);padding-top:5px}
+.kv dd{margin:0;color:var(--fg)}
+.kv dd a:hover{color:var(--accent)}
+
+.legal h2{font-family:Zodiak,Georgia,serif;font-size:clamp(21px,2vw,28px);font-weight:700;letter-spacing:-.015em;margin:44px 0 14px}
+.legal h2:first-of-type{margin-top:0}
+.legal p,.legal li{color:var(--fg-2);max-width:74ch}
+.legal ul{padding-left:20px}
+
+/* =========================================================
+   Breakpoints
+   ========================================================= */
+@media (max-width:1100px){
+  .quotes{grid-template-columns:minmax(0,1fr) minmax(0,.7fr)}
+  .quotes .rail-nav{grid-column:1 / -1;flex-direction:row}
+  .foot-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+
+@media (max-width:900px){
+  body{font-size:17px}
+  .hero{display:flex;flex-direction:column;align-items:stretch;min-height:auto;padding-block:clamp(126px,20vh,170px) 56px}
+  .hero-grid{order:1}
+  .hero-copy{max-width:none}
+  .hero-art{order:2;position:relative;inset:auto;width:100%;height:min(72vw,380px);margin-top:44px}
+  .hero-media img{transform:none;height:100%}
+  .hero-graphic{inset:-1px}
+  .hero-scroll{display:none}
+  .pair{grid-template-columns:1fr;gap:36px}
+  .pair .tile:first-child figure{transform:none}
+  /* auf kleinen Schirmen scrollen die Karten normal durch */
+  .band{height:78svh}
+  .bands > .band{position:relative;top:auto}
+  .full-screen-img{height:72svh}
+  .quotes{grid-template-columns:1fr}
+  .row,.kontakt-grid{grid-template-columns:1fr;gap:26px}
+  .row--flip figure{order:0}
+  .quotes{grid-template-columns:1fr;gap:28px}
+  .quote-fig{max-width:340px}
+  .head-tel span{display:none}
+  .head-tel{width:46px;height:46px;border:1px solid var(--line);border-radius:999px;display:grid;place-items:center}
+  .head-tel svg{width:17px;height:17px}
+  .foot-grid{grid-template-columns:1fr}
+  .kv{grid-template-columns:1fr;gap:4px}
+  /* min-height zusammen mit aspect-ratio würde die Breite aufblähen */
+  .kontakt-media{min-height:0;aspect-ratio:3/2}
+  .scrolling-title{transform:none}
+}
+
+@media (max-width:640px){
+  .facts div{flex:1 1 50%}
+  .brand-word{display:none}
+  .brand svg{width:38px;height:38px}
+  .menu-btn{width:96px;height:46px;top:18px}
+  .rail{grid-auto-columns:78vw}
+  .rail-head .d-m{max-width:none}
+  .rail-wrap{display:flex;flex-direction:column}
+  .rail-wrap .rail{order:1}
+  .rail-nav--float{order:2;position:static;transform:none;flex-direction:row-reverse;justify-content:center;margin-top:26px}
+  .site-head{padding-top:18px}
+  .proj > div{padding-right:0;border-right:none;border-bottom:1px solid var(--line-soft)}
+  .proj > div:last-child{border-bottom:none}
+  /* Keine eigene Größe für die Sektionswörter — sie steht je Wort in --huge
+     und ist dort so gewählt, dass sie auf jeder Breite den Satzspiegel füllt. */
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+  .js [data-animate="fade-up"]:not([data-animated]){opacity:1;transform:none}
+  .js [data-animate="words"]:not([data-animated]) .word{transform:none;opacity:1}
+  .js [data-animate="img"]:not([data-animated])::after{opacity:0;transform:scaleY(0)}
+  [data-parallax]{--parallax-percent:0!important}
+  .hero-media img,.scrolling-title,.pair .tile:first-child figure{transform:none!important}
+  .band img,.full-screen-img img{transform:none!important;height:100%}
+}
+
+@media print{
+  .site-head,.nav-overlay,.hero-art,.rail-nav{display:none}
+  body{background:#fff;color:#000}
+}
